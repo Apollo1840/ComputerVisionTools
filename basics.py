@@ -68,3 +68,33 @@ label = 'haha'
 img = cv2.putText(img, label, pos, cv2.FONT_HERSHEY_COMPLEX, fontScale=1, (0, 225, 0), int(scale/(2000)))
 
 
+
+
+# -----------------------------------------------------------------------------
+# deal with video
+
+def make_video(self, images, vid=None, outvid='image_video.avi', fps=2, size=None, is_color=True, format_="XVID"):
+    # images is list of paths
+
+    fourcc = cv2.VideoWriter_fourcc(*format_)
+    
+    # test whether vid or size exist and initialize vid
+    if vid is None:
+        if size is None: size = img.shape[1], img.shape[0]
+        vid = cv2.VideoWriter(outvid, fourcc, float(fps), size, is_color)
+    
+    # enumerate the images
+    for image in images:
+        if not os.path.exists(image):
+            raise FileNotFoundError(image)
+        
+        img = cv2.imread(image)
+        
+        if size[0] != img.shape[1] and size[1] != img.shape[0]:
+            img = cv2.resize(img, size)
+            
+        vid.write(img)
+    
+    vid.release()
+    return vid
+
