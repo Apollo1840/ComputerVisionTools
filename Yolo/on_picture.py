@@ -9,105 +9,95 @@ from darkflow.net.build import TFNet
 import cv2
 import os
 from pprint import pprint
+import json
 import matplotlib.pyplot as plt
 import random
 
-def plot_result(result, img, output_path):
-    # inputs are the result from tfnet.return_predict(img), the image from sv2.imread, and the output_path.
-    items = set([item['label'] for item in result])
-    color_dict = {}
-    for item in items:
-        color_dict.update({item: (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))})
+
+
+
+class YoloCV():
     
-    for i in range(len(result)):
-        tl = (result[i]['topleft']['x'], result[i]['topleft']['y'])
-        br = (result[i]['bottomright']['x'], result[i]['bottomright']['y'])
-        label = result[i]['label']
+    def __init__(self, options = {"model": "cfg/yolo.cfg", "load": "bin/yolov2.weights", "threshold": 0.7, "gpu": 0.8}):
         
-        color = color_dict[label]
-        lwd = 5
-        img = cv2.rectangle(img, tl, br, color, lwd)
-        img = cv2.putText(img, label, (tl[0], tl[1]-10), cv2.FONT_HERSHEY_COMPLEX, 1, color, lwd)  
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
-    plt.imsave(os.path.join(output_path, 'output.png'), img)
-    plt.show()
-
-def summary_result(result):
-    items = [item['label'] for item in result]
-    summary_dict = {}
-    for item in items:
-        try:
-            summary_dict[item] += 1
-        except KeyError:
-            summary_dict.update({item: 1})
-    return summary_dict
+        if isinstance(options, str):
+            with open('... .txt','r',encoding = 'utf-8') as f:
+                options = json.load(f)
+        
+        wrk_dir = os.getcwd()
+        os.chdir('C:\\Users\\zouco\\Desktop\\\pyProject\\darkflow-master')
+        self.tfnet_ = TFNet(options)
+        os.chdir(wrk_dir)
     
 
-
-def yolo_read_img(image_path, options, output_path):
-    tfnet = TFNet(options)
+    def run(self, pic_path, output_path):
+        self.get_output(pic_path, output_path)
+        plt.imshow(self.img_output_)
+        pprint(self.result_)
+        print(self.result_summary_)
+        
+        
+    def get_output(self, pic_path, output_path):
+        self.get_result(pic_path)
+        self.process_result()
+        self.save_output(output_path)
+        
     
-    img =  cv2.imread(image_path, cv2.IMREAD_COLOR) # get the BGR image
-    # img.shape
+    def get_result(self, pic_path):
+        
+        '''
+                result is like a list of dictionary:
+                    {'bottomright': {x: .. , y: ..}, 'label': xx, 'confidence': xx , ...}
     
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        '''
+        
+        
+        self.img_ = cv2.cvtColor(cv2.imread(pic_path), cv2.COLOR_BGR2RGB)
+        self.result_ = self.tfnet_.return_predict(self.img_)
     
-    result = tfnet.return_predict(img)
-    
-    '''
-    result is like a list of dictionary:
-        {'bottomright': {x: .. , y: ..}, 'label': xx, 'confidence': xx , ...}
-    
-    '''
-    
+    def process_result(self):
+        # add rectangles by self.result_
+        
+        result = self.result_
+        items = set([item['label'] for item in result])
+        
+        color_dict = {}
+        for item in items:
+            color_dict.update({item: (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))})
+        
+        for i in range(len(result)):
+            tl = (result[i]['topleft']['x'], result[i]['topleft']['y'])
+            br = (result[i]['bottomright']['x'], result[i]['bottomright']['y'])
+            label = result[i]['label']
             
-    plot_result(result, img, output_path)
-    print(summary_result(result))
+            color = color_dict[label]
+            lwd = 5
+            img = cv2.rectangle(self.img_, tl, br, color, lwd)
+            img = cv2.putText(img, label, (tl[0], tl[1]-10), cv2.FONT_HERSHEY_COMPLEX, 1, color, lwd)  
+            
+            self.img_output_ = img
+        
+    def save_output(self, output_path):
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
+        plt.imsave(os.path.join(output_path, 'output.png'), self.img_output_)
     
-def test_demo():
-    wrk_dir = os.getcwd()
-    #config InlineBackend.figure_format = 'svg'
-    os.chdir('C:\\Users\\zouco\\Desktop\\\pyProject\\FairyPatrol\\darkflow-master')
-    
-    options = {
-     "model": "cfg/yolo.cfg", 
-     "load": "bin/yolov2.weights", 
-     "threshold": 0.7,
-     "gpu": 0.8}
-    
-    tfnet = TFNet(options)
-    
-    imgcv = cv2.imread("./sample_img/sample_office.jpg")
-    img =  cv2.imread("./sample_img/sample_office.jpg", cv2.IMREAD_COLOR)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    
-    
-    scale = max(img.shape[0], img.shape[1])
-    
-    result = tfnet.return_predict(imgcv)
-    pprint(result)
-    
-    tl = (result[0]['topleft']['x'], result[0]['topleft']['y'])
-    br = (result[0]['bottomright']['x'], result[0]['bottomright']['y'])
-    label = result[0]['label']
-    
-    img = cv2.rectangle(img, tl, br, 'r', int(scale/1000))
-    img = cv2.putText(img, label, (tl[0], tl[1]-10), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 225, 0), int(scale/(2000)))
-    plt.imshow(img)
-    
-    path = os.path.join(wrk_dir, 'results')
-    if not os.path.exists(path):
-        os.makedirs(path)
-    plt.imsave(os.path.join(path, 'output.png'), img)
-    
-    plt.show()
+    @property
+    def result_summary_(self):
+        items = [item['label'] for item in self.result_]
+        summary_dict = {}
+        for item in items:
+            try:
+                summary_dict[item] += 1
+            except KeyError:
+                summary_dict.update({item: 1})
+        return summary_dict
         
 
 if __name__== "__main__":
     wrk_dir = os.getcwd()
     #config InlineBackend.figure_format = 'svg'
-    os.chdir('C:\\Users\\zouco\\Desktop\\\pyProject\\darkflow-master')
+    #os.chdir('C:\\Users\\zouco\\Desktop\\\pyProject\\darkflow-master')
     
     options = {
      "model": "cfg/yolo.cfg", 
@@ -115,10 +105,11 @@ if __name__== "__main__":
      "threshold": 0.3,
      "gpu": 0.8}
     
-    pic_path = "C:\\Users\\zouco\\Desktop\\\pyProject\\ComputerVisionTools\\Yolo\\input\\sample_office.jpg"
-    output_path =  os.path.join(wrk_dir, 'output')
+    pic_path = "input\\sample_office.jpg"
+    output_path = 'output'
     
-    yolo_read_img(pic_path, options, output_path)
+    yc = YoloCV(options)
+    yc.run(pic_path, output_path)
     
     
     
