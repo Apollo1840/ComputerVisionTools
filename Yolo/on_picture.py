@@ -115,7 +115,7 @@ if __name__== "__main__":
      "threshold": 0.3,
      "gpu": 0.8}
     
-    pic_path = "input\\sample_office.jpg"
+    pic_path = "C:\\Users\\zouco\\Desktop\\\pyProject\\PicVideoForCV\\sample_office.jpg"
     output_path = 'output'
     
     yc = YoloCV(options)
